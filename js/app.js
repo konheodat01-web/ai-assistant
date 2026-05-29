@@ -1,9 +1,14 @@
 // ===== CONFIG =====
 const CONFIG = {
   webhookUrl: localStorage.getItem('webhookUrl') || 'https://103.82.195.87/webhook/ai-orchestrator',
-  // n8n VPS: 103.82.195.87 | WFL1 ID: EQ0tkGzUdSQX16bu | WFL2 ID: wwM3d54FCIhOo5MB
+  pushServerUrl: 'https://103.82.195.87/push',
+  vapidPublicKey: 'BNpXnlHm5tfuilpDZLBu5x-2brayp_XvSbYwFXBbAy36UlcSQQOl263zxQ2jeq8oIJbN1FvUK0uyVPngPIlp7Ew',
   botName: 'Trợ lý AI',
 };
+
+// ===== USER SETTINGS =====
+const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"name":"Chủ hệ thống"}');
+function saveSettings() { localStorage.setItem('userSettings', JSON.stringify(userSettings)); }
 
 // ===== STATE =====
 let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
@@ -134,7 +139,8 @@ async function sendMessage() {
         message: text,
         history: chatHistory.slice(-10),
         timestamp: new Date().toISOString(),
-        source: 'pwa-app'
+        source: 'pwa-app',
+        userName: userSettings.name  // ← gửi tên user cho AI
       })
     });
 
@@ -232,6 +238,50 @@ function showWelcome() {
   chatArea.insertBefore(welcome, typingIndicator);
 }
 
+// ===== PUSH NOTIFICATIONS =====
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function subscribePush() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (sub) return; // Đã đăng ký rồi
+
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(CONFIG.vapidPublicKey)
+    });
+
+    // Gửi subscription lên push server
+    await fetch(CONFIG.pushServerUrl + '/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub)
+    });
+    console.log('✅ Push notification đã đăng ký!');
+  } catch(e) {
+    console.log('Push sub error:', e.message);
+  }
+}
+
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    subscribePush();
+    return;
+  }
+  if (Notification.permission !== 'denied') {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') subscribePush();
+  }
+}
+
 // ===== INIT =====
 function init() {
   renderQuickActions();
@@ -248,9 +298,13 @@ function init() {
     setTimeout(() => scrollToBottom(), 100);
   }
 
-  // Register service worker
+  // Register service worker + push
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('SW registered');
+      // Hỏi xin quyền notification sau 3 giây (không hỏi ngay khi vào)
+      setTimeout(() => requestNotificationPermission(), 3000);
+    }).catch(() => {});
   }
 
   msgInput.focus();
