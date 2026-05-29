@@ -44,7 +44,7 @@ self.addEventListener('push', e => {
   const options = {
     body: data.body,
     icon: '/ai-assistant/icons/icon-192.png',
-    badge: '/ai-assistant/icons/icon-72.png',
+    badge: '/ai-assistant/icons/icon-192.png',
     data: data,
     vibrate: [200, 100, 200],
     requireInteraction: data.priority === 'critical'
