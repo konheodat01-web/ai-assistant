@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f0f1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AI Assistant">
+  <meta name="description" content="Trợ lý AI cá nhân - Quản lý GSC, viết bài SEO và nhiều hơn nữa">
+  <title>AI Assistant</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-avatar">🤖</div>
+    <div class="header-info">
+      <div class="header-name">Trợ lý AI</div>
+      <div class="header-status">Đang hoạt động</div>
+    </div>
+    <button class="header-btn" id="clear-btn" title="Xóa hội thoại">🗑️</button>
+    <button class="header-btn" id="settings-btn" title="Cài đặt">⚙️</button>
+  </header>
+
+  <!-- QUICK ACTIONS -->
+  <div class="quick-actions" id="quick-actions"></div>
+
+  <!-- CHAT AREA -->
+  <main class="chat-area" id="chat-area">
+    <!-- Typing indicator (luôn ở cuối) -->
+    <div class="typing-indicator" id="typing-indicator">
+      <div class="msg-avatar">🤖</div>
+      <div class="typing-bubble">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- INPUT AREA -->
+  <footer class="input-area">
+    <div class="input-wrap">
+      <textarea
+        id="msg-input"
+        placeholder="Nhắn lệnh hoặc đặt câu hỏi..."
+        rows="1"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+      ></textarea>
+    </div>
+    <button class="send-btn" id="send-btn" title="Gửi">➤</button>
+  </footer>
+
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="settings-overlay" id="settings-overlay">
+  <div class="settings-panel">
+    <div class="settings-title">
+      ⚙️ Cài đặt
+      <span class="settings-close" id="settings-close">✕</span>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-label">🔗 Webhook URL (n8n Orchestrator)</div>
+      <input
+        type="url"
+        class="setting-input"
+        id="setting-webhook"
+        placeholder="https://your-vps/webhook/ai-orchestrator"
+      >
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-label">ℹ️ Hướng dẫn kết nối</div>
+      <p style="font-size:12px;color:#8888aa;line-height:1.6">
+        1. Mở <strong style="color:#e8e8f0">https://103.82.195.87</strong> trên trình duyệt<br>
+        2. Chấp nhận cảnh báo bảo mật SSL<br>
+        3. Quay lại app và gửi tin nhắn thử
+      </p>
+    </div>
+
+    <button class="save-btn" id="save-settings">💾 Lưu cài đặt</button>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
