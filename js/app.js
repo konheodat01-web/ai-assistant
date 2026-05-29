@@ -69,7 +69,8 @@ auth.onAuthStateChanged(user => {
 });
 
 document.getElementById('login-google-btn').addEventListener('click', () => {
-  auth.signInWithPopup(provider).catch(err => alert("Lỗi đăng nhập: " + err.message));
+  // Thay thế signInWithPopup bằng signInWithRedirect để sửa lỗi Cross-Origin-Opener-Policy trên Github Pages
+  auth.signInWithRedirect(provider);
 });
 
 logoutBtn.addEventListener('click', () => {
