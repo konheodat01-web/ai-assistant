@@ -251,20 +251,48 @@ async function sendMessage() {
   await db.collection('users').doc(currentUser.uid).collection('messages').add(userMsg);
 
   // ===== CLIENT-SIDE SKILL DETECTION (không cần chờ n8n) =====
-  // Nếu user nói "học kỹ năng mới: ..." → lưu ngay vào Firestore luôn
   const skillMatch = text.match(/^(?:học kỹ năng(?: mới)?|dạy kỹ năng|ghi nhớ kỹ năng)[:\-]\s*(.+)/is);
   if (skillMatch && currentUser) {
-    const skillContent = skillMatch[1].trim();
-    const skillName = skillContent.length > 40 ? skillContent.substring(0, 40) + '...' : skillContent;
+    const rawSkill = skillMatch[1].trim();
+    showTyping();
+
+    // === Normalize skill qua Groq để tránh hiểu nhầm ===
+    let skillContent = rawSkill;
+    let skillName = rawSkill.length > 40 ? rawSkill.substring(0, 40) + '...' : rawSkill;
+    try {
+      const webhookUrl = localStorage.getItem('webhookUrl') || CONFIG.webhookUrl;
+      const ctrl = new AbortController();
+      setTimeout(() => ctrl.abort(), 10000);
+      const normRes = await fetch(webhookUrl, {
+        method: 'POST', signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Hãy diễn đạt lại yêu cầu sau thành 1 câu instruction rõ ràng, cụ thể, không mơ hồ để AI luôn hiểu đúng (chỉ trả về câu instruction, không giải thích): "${rawSkill}"`,
+          history: [], skills: [], mode: 'normal',
+          source: 'skill-normalize'
+        })
+      });
+      if (normRes.ok) {
+        const normData = await normRes.json();
+        const normalized = (normData.result || '').trim().replace(/^["']|["']$/g, '');
+        if (normalized && normalized.length > 5 && normalized.length < 300) {
+          skillContent = normalized;
+          skillName = normalized.length > 40 ? normalized.substring(0, 40) + '...' : normalized;
+        }
+      }
+    } catch(e) { /* normalize thất bại → dùng raw skill */ }
+
+    hideTyping();
     try {
       await db.collection('users').doc(currentUser.uid).collection('skills').add({
         name: skillName,
         content: skillContent,
+        original: rawSkill, // Lưu bản gốc để tham khảo
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
       await db.collection('users').doc(currentUser.uid).collection('messages').add({
         role: 'assistant',
-        content: `✅ **Đã học kỹ năng mới!**\n\n**"${skillName}"**\n\nKỹ năng đã được lưu vào Kho Kỹ Năng. Tôi sẽ áp dụng trong các câu trả lời sau.`,
+        content: `✅ **Đã học kỹ năng mới!**\n\n📝 **Bản gốc:** "${rawSkill}"\n🎯 **Đã chuẩn hóa thành:** "${skillContent}"\n\nTôi sẽ áp dụng chính xác trong các câu trả lời sau.`,
         time: getTimeStr(),
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -275,8 +303,9 @@ async function sendMessage() {
       });
     }
     isProcessing = false; sendBtn.disabled = false; msgInput.focus();
-    return; // Không cần gọi n8n
+    return;
   }
+
 
 
   // Nếu đang ở CHẾ ĐỘ HỌC TẬP -> Đẩy thẳng lên Qdrant, KHÔNG hỏi AI
