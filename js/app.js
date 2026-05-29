@@ -100,7 +100,9 @@ function loadMessages() {
       if (change.type === 'added') {
         const data = change.doc.data();
         chatHistory.push(data); // Dùng history này gửi lên WFL1
-        appendMessage(data.role, data.content, data.time);
+        if (!data.isHidden) {
+          appendMessage(data.role, data.content, data.time);
+        }
       }
     });
     
@@ -260,6 +262,17 @@ async function sendMessage() {
       } catch (err) {
         reply = `❌ Lỗi khi lưu kỹ năng: ${err.message}`;
       }
+    } else if (data.tool_executed === 'search_second_brain') {
+      reply = `🔍 Đang lục lọi trong Second Brain với từ khóa: **${data.tool_args.query}**...`;
+      // PWA tự động gọi WFL6 để tìm kiếm
+      fetch(`https://103.82.195.87/webhook/search-brain?q=${encodeURIComponent(data.tool_args.query)}`)
+        .then(res => res.json())
+        .then(searchData => {
+           let docs = searchData.chunks && searchData.chunks.length > 0 ? searchData.chunks.join('\\n\\n---\\n\\n') : 'Không tìm thấy tài liệu nào liên quan.';
+           const hiddenMsg = `[KẾT QUẢ TÌM KIẾM SECOND BRAIN CHO TỪ KHÓA: ${data.tool_args.query}]\\n\\n${docs}\\n\\nDựa vào các tài liệu trên, hãy trả lời câu hỏi gốc của tôi.`;
+           autoReplyToAi(hiddenMsg);
+        })
+        .catch(err => console.error("Lỗi search second brain:", err));
     }
 
     // Lưu phản hồi của AI lên Firebase → UI tự render
@@ -287,6 +300,51 @@ async function sendMessage() {
   isProcessing = false;
   sendBtn.disabled = false;
   msgInput.focus();
+}
+
+// ===== AUTO REPLY (Dành cho Tools) =====
+async function autoReplyToAi(text) {
+  // Lưu vào Firebase dạng tin ẩn
+  await db.collection('users').doc(currentUser.uid).collection('messages').add({
+    role: 'user',
+    content: text,
+    time: getTimeStr(),
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    isHidden: true
+  });
+  
+  // Đợi Firebase update local (khoảng 1s)
+  setTimeout(async () => {
+    isProcessing = true;
+    showTyping();
+    try {
+      const webhookUrl = localStorage.getItem('webhookUrl') || CONFIG.webhookUrl;
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          history: chatHistory.slice(-10).map(m => ({ role: m.role, content: m.content })),
+          skills: userSkills.map(s => ({ name: s.name, content: s.content })),
+          timestamp: new Date().toISOString(),
+          source: 'pwa-app',
+          userName: userSettings.name 
+        })
+      });
+      const data = await response.json();
+      const reply = data.result || data.message || data.output || JSON.stringify(data);
+      await db.collection('users').doc(currentUser.uid).collection('messages').add({
+        role: 'assistant',
+        content: reply,
+        time: getTimeStr(),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch(err) {
+      console.error(err);
+    }
+    isProcessing = false;
+    hideTyping();
+  }, 1000);
 }
 
 // ===== INPUT HANDLING =====
