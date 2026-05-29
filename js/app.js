@@ -9,6 +9,17 @@ const CONFIG = {
 let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
 let isProcessing = false;
 
+// Lưu lịch sử ngay lập tức - gọi sau mỗi thay đổi
+function saveHistory() {
+  try {
+    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+  } catch(e) {
+    // localStorage đầy, xóa tin cũ nhất
+    if (chatHistory.length > 50) chatHistory = chatHistory.slice(-50);
+    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+  }
+}
+
 // ===== DOM REFS =====
 const chatArea = document.getElementById('chat-area');
 const msgInput = document.getElementById('msg-input');
@@ -106,9 +117,9 @@ async function sendMessage() {
   const timeStr = getTimeStr();
   appendMessage('user', text, timeStr);
 
-  // Add to history
-  chatHistory.push({ role: 'user', content: text });
-  if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+  // Lưu tin nhắn user ngay lập tức
+  chatHistory.push({ role: 'user', content: text, time: timeStr });
+  saveHistory(); // ← lưu ngay, không chờ AI
 
   // Show typing
   showTyping();
@@ -134,16 +145,20 @@ async function sendMessage() {
     const data = await response.json();
     const reply = data.result || data.message || data.output || JSON.stringify(data);
 
-    appendMessage('ai', reply, getTimeStr());
-    chatHistory.push({ role: 'assistant', content: reply });
-    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+    const aiTime = getTimeStr();
+    appendMessage('ai', reply, aiTime);
+    chatHistory.push({ role: 'assistant', content: reply, time: aiTime });
+    saveHistory(); // ← lưu sau khi AI trả lời
 
   } catch (err) {
     hideTyping();
-    const errMsg = err.message.includes('Failed to fetch')
-      ? '⚠️ Không kết nối được tới server. Vui lòng kiểm tra:\n1. VPS đang chạy\n2. URL webhook trong Cài đặt\n3. Đã chấp nhận cert SSL chưa?'
+    // Lịch sử user message đã được lưu trước đó (saveHistory đã gọi)
+    // Chỉ thông báo lỗi, KHÔNG xóa lịch sử
+    const errMsg = err.message.includes('Failed to fetch') || err.message.includes('NetworkError')
+      ? '⚠️ Không kết nối được tới server.\n\n👉 Vui lòng mở tab mới, vào **https://103.82.195.87** và bấm **Advanced → Proceed** để chấp nhận SSL cert, rồi thử lại.'
       : `❌ Lỗi: ${err.message}`;
     appendMessage('ai', errMsg, getTimeStr());
+    // Không lưu tin nhắn lỗi vào history
   }
 
   isProcessing = false;
@@ -191,12 +206,15 @@ document.getElementById('save-settings').addEventListener('click', () => {
 
 // ===== CLEAR CHAT =====
 document.getElementById('clear-btn').addEventListener('click', () => {
-  if (confirm('Xóa toàn bộ lịch sử hội thoại?')) {
-    chatHistory = [];
-    localStorage.removeItem('chatHistory');
-    const msgs = chatArea.querySelectorAll('.msg-group');
-    msgs.forEach(m => m.remove());
-    showWelcome();
+  // Yêu cầu xác nhận 2 lần để tránh xóa nhầm
+  if (confirm('⚠️ Bạn muốn xóa toàn bộ lịch sử hội thoại?\n\nHành động này không thể hoàn tác!')) {
+    if (confirm('Xác nhận lần 2: Thực sự muốn xóa hết?')) {
+      chatHistory = [];
+      localStorage.removeItem('chatHistory');
+      const msgs = chatArea.querySelectorAll('.msg-group');
+      msgs.forEach(m => m.remove());
+      showWelcome();
+    }
   }
 });
 
@@ -218,13 +236,16 @@ function showWelcome() {
 function init() {
   renderQuickActions();
 
-  // Restore chat history
+  // Khôi phục lịch sử chat từ localStorage
   if (chatHistory.length === 0) {
     showWelcome();
   } else {
     chatHistory.forEach(msg => {
-      appendMessage(msg.role === 'user' ? 'user' : 'ai', msg.content, '');
+      const role = msg.role === 'user' ? 'user' : 'ai';
+      appendMessage(role, msg.content, msg.time || '');
     });
+    // Scroll xuống tin mới nhất
+    setTimeout(() => scrollToBottom(), 100);
   }
 
   // Register service worker
