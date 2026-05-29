@@ -385,6 +385,51 @@ modeToggleBtn.addEventListener('click', () => {
   }
 });
 
+// ===== UPLOAD TÀI LIỆU (SECOND BRAIN) =====
+const docUpload = document.getElementById('doc-upload');
+docUpload.addEventListener('change', async (e) => {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    
+    // Tạo tin nhắn thông báo upload lên Firebase
+    await db.collection('users').doc(currentUser.uid).collection('messages').add({
+      role: 'assistant',
+      content: `⏳ Đang nạp tài liệu: **${file.name}** vào Second Brain...`,
+      time: getTimeStr(),
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    try {
+      const formData = new FormData();
+      formData.append('data', file);
+      
+      const res = await fetch('https://103.82.195.87/webhook/upload-docs', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await res.json();
+      await db.collection('users').doc(currentUser.uid).collection('messages').add({
+        role: 'assistant',
+        content: `✅ Đã nạp thành công **${file.name}**! Tài liệu này đã được lưu vĩnh viễn vào hệ thống.`,
+        time: getTimeStr(),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (err) {
+      await db.collection('users').doc(currentUser.uid).collection('messages').add({
+        role: 'assistant',
+        content: `❌ Lỗi nạp tài liệu **${file.name}**: ${err.message}`,
+        time: getTimeStr(),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  }
+  docUpload.value = '';
+});
+
 // ===== SETTINGS & SKILLS UI =====
 document.getElementById('settings-btn').addEventListener('click', () => {
   document.getElementById('setting-webhook').value = localStorage.getItem('webhookUrl') || CONFIG.webhookUrl;
