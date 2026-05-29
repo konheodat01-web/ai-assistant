@@ -35,6 +35,7 @@ let currentUser = null;
 let unsubscribeMessages = null;
 let unsubscribeSkills = null;
 let userSkills = [];
+let isExpertMode = false;
 
 // ===== DOM REFS =====
 const chatArea = document.getElementById('chat-area');
@@ -237,6 +238,7 @@ async function sendMessage() {
         // Gửi history thuần không có Firebase serverTimestamp field để tránh lỗi json
         history: chatHistory.slice(-10).map(m => ({ role: m.role, content: m.content })),
         skills: userSkills.map(s => ({ name: s.name, content: s.content })), // Truyền kỹ năng vào cho WFL1
+        mode: isExpertMode ? 'expert' : 'normal',
         timestamp: new Date().toISOString(),
         source: 'pwa-app',
         userName: userSettings.name 
@@ -326,6 +328,7 @@ async function autoReplyToAi(text) {
           message: text,
           history: chatHistory.slice(-10).map(m => ({ role: m.role, content: m.content })),
           skills: userSkills.map(s => ({ name: s.name, content: s.content })),
+          mode: isExpertMode ? 'expert' : 'normal',
           timestamp: new Date().toISOString(),
           source: 'pwa-app',
           userName: userSettings.name 
@@ -361,6 +364,26 @@ msgInput.addEventListener('keydown', e => {
   }
 });
 sendBtn.addEventListener('click', sendMessage);
+
+// ===== MODE TOGGLE =====
+const modeToggleBtn = document.getElementById('mode-toggle');
+const modeIcon = document.getElementById('mode-icon');
+const modeText = document.getElementById('mode-text');
+
+modeToggleBtn.addEventListener('click', () => {
+  isExpertMode = !isExpertMode;
+  if (isExpertMode) {
+    modeIcon.textContent = '🧠';
+    modeText.textContent = 'Chế độ Chuyên gia';
+    modeToggleBtn.style.color = '#4facfe';
+    modeToggleBtn.style.borderColor = '#4facfe';
+  } else {
+    modeIcon.textContent = '⚡';
+    modeText.textContent = 'Chế độ Cơ bản';
+    modeToggleBtn.style.color = '#888';
+    modeToggleBtn.style.borderColor = '#333';
+  }
+});
 
 // ===== SETTINGS & SKILLS UI =====
 document.getElementById('settings-btn').addEventListener('click', () => {
