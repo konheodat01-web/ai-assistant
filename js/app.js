@@ -2,7 +2,7 @@
 const CONFIG = {
   webhookUrl: localStorage.getItem('webhookUrl') || 'https://103.82.195.87/webhook/ai-orchestrator',
   pushServerUrl: 'https://103.82.195.87/push',
-  vapidPublicKey: 'BNpXnlHm5tfuilpDZLBu5x-2brayp_XvSbYwFXBbAy36UlcSQQOl263zxQ2jeq8oIJbN1FvUK0uyVPngPIlp7Ew',
+  vapidPublicKey: 'BB7YphPy5ZbDpecs8B9lhOnLoAQ7aSTHEUKVhxV7PH8ZITMSf0pTwYvi9SBh794p-E3GNyyiP4DJPb4iQHYogmI',
   botName: 'Trợ lý AI',
 };
 
@@ -628,10 +628,13 @@ async function subscribePush() {
       applicationServerKey: urlBase64ToUint8Array(CONFIG.vapidPublicKey)
     });
 
+    // Include uid so n8n can target specific user
+    const subData = sub.toJSON();
+    subData.uid = currentUser?.uid || 'unknown';
     await fetch(CONFIG.pushServerUrl + '/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sub)
+      body: JSON.stringify(subData)
     });
     console.log('✅ Push notification đã đăng ký!');
   } catch(e) {

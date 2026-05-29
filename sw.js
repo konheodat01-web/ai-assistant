@@ -1,6 +1,6 @@
-const CACHE_NAME = 'ai-assistant-v4';
+const CACHE_NAME = 'ai-assistant-v5';
 const LOCAL_ASSETS = ['./', './index.html', './css/style.css', './js/app.js', './manifest.json'];
-const VAPID_PUBLIC_KEY = 'BNpXnlHm5tfuilpDZLBu5x-2brayp_XvSbYwFXBbAy36UlcSQQOl263zxQ2jeq8oIJbN1FvUK0uyVPngPIlp7Ew';
+const VAPID_PUBLIC_KEY = 'BB7YphPy5ZbDpecs8B9lhOnLoAQ7aSTHEUKVhxV7PH8ZITMSf0pTwYvi9SBh794p-E3GNyyiP4DJPb4iQHYogmI';
 
 // ===== CACHE =====
 self.addEventListener('install', e => {
@@ -43,10 +43,11 @@ self.addEventListener('push', e => {
 
   const options = {
     body: data.body,
-    icon: 'assets/icon-192.png',
-    badge: 'assets/icon-192.png',
+    icon: '/ai-assistant/icons/icon-192.png',
+    badge: '/ai-assistant/icons/icon-72.png',
     data: data,
-    vibrate: [200, 100, 200]
+    vibrate: [200, 100, 200],
+    requireInteraction: data.priority === 'critical'
   };
   
   // Gửi data sang cho các tab đang mở
