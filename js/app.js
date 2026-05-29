@@ -636,6 +636,65 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
+// ===== NOTIFICATION BELL BUTTON =====
+function updateBellUI() {
+  const bell = document.getElementById('notif-bell-btn');
+  const dot = document.getElementById('notif-bell-dot');
+  if (!bell) return;
+  const perm = Notification.permission;
+  if (perm === 'granted') {
+    bell.innerHTML = '🔔<span id="notif-bell-dot" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ff4d4f;border-radius:50%;border:2px solid #0f0f1a"></span>';
+    bell.style.opacity = '1';
+    bell.title = 'Thông báo: BẬT — Click để xem trạng thái';
+  } else if (perm === 'denied') {
+    bell.innerHTML = '🔕<span id="notif-bell-dot" style="display:block;position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ff4d4f;border-radius:50%;border:2px solid #0f0f1a"></span>';
+    bell.style.opacity = '0.6';
+    bell.title = 'Thông báo: TẮT — Click để hướng dẫn bật';
+  } else {
+    bell.innerHTML = '🔔<span id="notif-bell-dot" style="display:block;position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ffa940;border-radius:50%;border:2px solid #0f0f1a"></span>';
+    bell.style.opacity = '0.7';
+    bell.title = 'Thông báo: CHƯA BẬT — Click để bật';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const bellBtn = document.getElementById('notif-bell-btn');
+  if (!bellBtn) return;
+
+  updateBellUI();
+
+  bellBtn.addEventListener('click', async () => {
+    const perm = Notification.permission;
+
+    if (perm === 'granted') {
+      // Already granted — show status toast
+      showBellToast('🔔 Thông báo đang BẬT', 'Bạn sẽ nhận được cảnh báo từ hệ thống kể cả khi thu nhỏ app.', '#00b96b');
+    } else if (perm === 'denied') {
+      // Denied — guide to unblock
+      showBellToast('🔕 Thông báo đang BỊ CHẶN', 'Vào thanh địa chỉ → click 🔒 → Site settings → Notifications → Allow → Reload trang.', '#ff4d4f');
+    } else {
+      // Not yet asked — request now
+      const result = await Notification.requestPermission();
+      updateBellUI();
+      if (result === 'granted') {
+        await subscribePush();
+        showBellToast('🔔 Đã bật thông báo!', 'Bạn sẽ nhận được cảnh báo từ hệ thống ngay cả khi thu nhỏ app.', '#00b96b');
+      }
+    }
+  });
+});
+
+function showBellToast(title, msg, color) {
+  const existing = document.getElementById('bell-toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'bell-toast';
+  toast.style.cssText = `position:fixed;top:70px;right:12px;z-index:9999;background:#1a1a2e;border:1px solid ${color}55;border-left:3px solid ${color};border-radius:10px;padding:12px 16px;max-width:280px;box-shadow:0 8px 24px #0008;animation:fadeInUp 0.2s ease`;
+  toast.innerHTML = `<div style="font-weight:600;color:${color};margin-bottom:4px;font-size:13px">${title}</div><div style="color:#aaa;font-size:12px;line-height:1.5">${msg}</div>`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
+}
+
 async function subscribePush() {
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
