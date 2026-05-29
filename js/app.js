@@ -260,10 +260,14 @@ async function sendMessage() {
       const formData = new FormData();
       formData.append('data', textFile);
       
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
       const res = await fetch('https://103.82.195.87/webhook/upload-docs', {
         method: 'POST',
-        body: formData
+        body: formData,
+        signal: controller.signal
       });
+      clearTimeout(timeout);
       await res.json();
       
       await db.collection('users').doc(currentUser.uid).collection('messages').add({
@@ -290,10 +294,13 @@ async function sendMessage() {
 
   try {
     const webhookUrl = localStorage.getItem('webhookUrl') || CONFIG.webhookUrl;
+    const ctrl = new AbortController();
+    const wt = setTimeout(() => ctrl.abort(), 30000); // 30s timeout
 
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: ctrl.signal,
       body: JSON.stringify({
         message: text,
         // Gửi history thuần không có Firebase serverTimestamp field để tránh lỗi json
