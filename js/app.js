@@ -33,6 +33,8 @@ let chatHistory = [];
 let isProcessing = false;
 let currentUser = null;
 let unsubscribeMessages = null;
+let unsubscribeSkills = null;
+let userSkills = [];
 
 // ===== DOM REFS =====
 const chatArea = document.getElementById('chat-area');
@@ -59,12 +61,15 @@ auth.onAuthStateChanged(user => {
     saveSettings();
 
     loadMessages();
+    loadSkills();
   } else {
     currentUser = null;
     loginOverlay.style.display = 'flex';
     logoutBtn.style.display = 'none';
     chatHistory = [];
+    userSkills = [];
     if (unsubscribeMessages) unsubscribeMessages();
+    if (unsubscribeSkills) unsubscribeSkills();
   }
 });
 
@@ -105,6 +110,45 @@ function loadMessages() {
       const welcomeMsg = document.getElementById('welcome-msg');
       if (welcomeMsg) welcomeMsg.remove();
     }
+  });
+}
+
+// ===== LOAD FIRESTORE SKILLS =====
+function loadSkills() {
+  const skillsRef = db.collection('users').doc(currentUser.uid).collection('skills').orderBy('timestamp', 'desc');
+  unsubscribeSkills = skillsRef.onSnapshot(snapshot => {
+    userSkills = [];
+    const container = document.getElementById('skills-list-container');
+    container.innerHTML = '';
+    
+    if (snapshot.empty) {
+      container.innerHTML = '<div style="color:#888; font-size:13px; text-align:center; padding: 20px;">Bạn chưa dạy AI kỹ năng nào.</div>';
+      return;
+    }
+
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      userSkills.push({ id: doc.id, ...data });
+      
+      const el = document.createElement('div');
+      el.style.cssText = 'background: #1a1a2e; padding: 12px; border-radius: 8px; border: 1px solid #333; position: relative;';
+      el.innerHTML = `
+        <div style="font-weight: 600; color: #4facfe; margin-bottom: 5px; font-size: 14px;">${data.name}</div>
+        <div style="font-size: 13px; color: #ccc; line-height: 1.4; white-space: pre-wrap;">${data.content}</div>
+        <button class="delete-skill-btn" data-id="${doc.id}" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: #ff4d4f; cursor: pointer; font-size: 16px;">🗑️</button>
+      `;
+      container.appendChild(el);
+    });
+
+    // Gắn sự kiện xóa
+    container.querySelectorAll('.delete-skill-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.target.getAttribute('data-id');
+        if (confirm('Bạn có chắc muốn xóa kỹ năng này?')) {
+          await db.collection('users').doc(currentUser.uid).collection('skills').doc(id).delete();
+        }
+      });
+    });
   });
 }
 
@@ -190,6 +234,7 @@ async function sendMessage() {
         message: text,
         // Gửi history thuần không có Firebase serverTimestamp field để tránh lỗi json
         history: chatHistory.slice(-10).map(m => ({ role: m.role, content: m.content })),
+        skills: userSkills.map(s => ({ name: s.name, content: s.content })), // Truyền kỹ năng vào cho WFL1
         timestamp: new Date().toISOString(),
         source: 'pwa-app',
         userName: userSettings.name 
@@ -201,7 +246,21 @@ async function sendMessage() {
     if (!response.ok) throw new Error(`Lỗi server: ${response.status}`);
 
     const data = await response.json();
-    const reply = data.result || data.message || data.output || JSON.stringify(data);
+    let reply = data.result || data.message || data.output || JSON.stringify(data);
+
+    // XỬ LÝ CLIENT-SIDE TOOLS
+    if (data.tool_executed === 'save_skill') {
+      try {
+        await db.collection('users').doc(currentUser.uid).collection('skills').add({
+          name: data.tool_args.skill_name || 'Kỹ năng mới',
+          content: data.tool_args.instructions || '',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        reply = `✅ **Đã ghi nhớ kỹ năng mới:** ${data.tool_args.skill_name}`;
+      } catch (err) {
+        reply = `❌ Lỗi khi lưu kỹ năng: ${err.message}`;
+      }
+    }
 
     // Lưu phản hồi của AI lên Firebase → UI tự render
     await db.collection('users').doc(currentUser.uid).collection('messages').add({
@@ -245,28 +304,52 @@ msgInput.addEventListener('keydown', e => {
 });
 sendBtn.addEventListener('click', sendMessage);
 
-// ===== SETTINGS =====
+// ===== SETTINGS & SKILLS UI =====
 document.getElementById('settings-btn').addEventListener('click', () => {
   document.getElementById('setting-webhook').value = localStorage.getItem('webhookUrl') || CONFIG.webhookUrl;
-  settingsOverlay.classList.add('show');
-});
-
-document.getElementById('settings-overlay').addEventListener('click', e => {
-  if (e.target === settingsOverlay) settingsOverlay.classList.remove('show');
+  settingsOverlay.style.display = 'flex';
 });
 
 document.getElementById('settings-close').addEventListener('click', () => {
-  settingsOverlay.classList.remove('show');
+  settingsOverlay.style.display = 'none';
 });
 
 document.getElementById('save-settings').addEventListener('click', () => {
   const url = document.getElementById('setting-webhook').value.trim();
   if (url) {
     localStorage.setItem('webhookUrl', url);
-    settingsOverlay.classList.remove('show');
-    // Save system message directly to UI
-    appendMessage('assistant', '✅ Đã lưu cài đặt! Webhook URL đã được cập nhật.', getTimeStr());
+    CONFIG.webhookUrl = url;
   }
+  settingsOverlay.style.display = 'none';
+  appendMessage('assistant', '✅ Đã lưu cấu hình mạng. Bạn có thể chat tiếp!');
+});
+
+// SKILLS UI
+const skillsOverlay = document.getElementById('skills-overlay');
+document.getElementById('skills-btn').addEventListener('click', () => {
+  skillsOverlay.style.display = 'flex';
+});
+
+document.getElementById('skills-close').addEventListener('click', () => {
+  skillsOverlay.style.display = 'none';
+});
+
+document.getElementById('btn-add-skill').addEventListener('click', async () => {
+  const nameInput = document.getElementById('new-skill-name');
+  const contentInput = document.getElementById('new-skill-content');
+  const name = nameInput.value.trim();
+  const content = contentInput.value.trim();
+  
+  if (!name || !content || !currentUser) return alert('Vui lòng nhập đủ tên và nội dung!');
+  
+  await db.collection('users').doc(currentUser.uid).collection('skills').add({
+    name: name,
+    content: content,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  
+  nameInput.value = '';
+  contentInput.value = '';
 });
 
 // ===== CLEAR CHAT =====

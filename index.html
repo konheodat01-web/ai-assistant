@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-auth-compat.js"></script>
@@ -34,6 +34,7 @@
     </div>
     <button class="header-btn" id="logout-btn" title="Đăng xuất" style="display:none; font-size:14px">🚪</button>
     <button class="header-btn" id="clear-btn" title="Xóa hội thoại">🗑️</button>
+    <button class="header-btn" id="skills-btn" title="Kho kỹ năng">🧠</button>
     <button class="header-btn" id="settings-btn" title="Cài đặt">⚙️</button>
   </header>
 
@@ -95,6 +96,27 @@
     </div>
 
     <button class="save-btn" id="save-settings">💾 Lưu cài đặt</button>
+  </div>
+</div>
+
+<!-- SKILL VAULT OVERLAY -->
+<div class="settings-overlay" id="skills-overlay" style="display:none; z-index:1000; align-items: center; justify-content: center; background: rgba(0,0,0,0.8);">
+  <div class="settings-panel" style="width: 90%; max-width: 500px; padding: 20px; border-radius: 12px; max-height: 80vh; overflow-y: auto;">
+    <div class="settings-title" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:10px; margin-bottom:15px;">
+      <span>🧠 Kho Kỹ Năng Tự Học</span>
+      <span class="settings-close" id="skills-close" style="cursor:pointer;">✕</span>
+    </div>
+    
+    <div id="skills-list-container" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+      <!-- JS Rendered Skills -->
+    </div>
+    
+    <div style="border-top:1px solid #333; padding-top:15px;">
+      <h4 style="margin-bottom:10px; font-size:14px; color:#aaa;">Thêm Kỹ Năng Bằng Tay</h4>
+      <input type="text" id="new-skill-name" class="setting-input" placeholder="Tên Kỹ Năng (vd: Viết báo cáo)" style="margin-bottom:10px;">
+      <textarea id="new-skill-content" class="setting-input" placeholder="Hướng dẫn (vd: Luôn gạch đầu dòng...)" rows="3" style="resize:vertical;"></textarea>
+      <button class="save-btn" id="btn-add-skill" style="margin-top:10px;">➕ Thêm Kỹ Năng</button>
+    </div>
   </div>
 </div>
 
