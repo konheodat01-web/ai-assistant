@@ -46,14 +46,20 @@ const settingsOverlay = document.getElementById('settings-overlay');
 const loginOverlay = document.getElementById('login-overlay');
 const logoutBtn = document.getElementById('logout-btn');
 
+// Xu ly ket qua redirect tu Google
+auth.getRedirectResult().then(result => {
+  // Redirect da duoc xu ly boi onAuthStateChanged, khong can lam gi them
+}).catch(err => {
+  console.error('Redirect login error:', err.message);
+});
+
 // ===== AUTH STATE CHANGED =====
 auth.onAuthStateChanged(user => {
   if (user) {
     currentUser = user;
     loginOverlay.style.display = 'none';
-    logoutBtn.style.display = 'block';
     
-    // Cập nhật Header
+    // Cap nhat Header
     document.getElementById('user-name').textContent = user.displayName || 'Trợ lý AI';
     if(user.photoURL) document.getElementById('user-avatar').innerHTML = `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
     document.getElementById('user-status').textContent = 'Đã đồng bộ • Online';
@@ -66,7 +72,6 @@ auth.onAuthStateChanged(user => {
   } else {
     currentUser = null;
     loginOverlay.style.display = 'flex';
-    logoutBtn.style.display = 'none';
     chatHistory = [];
     userSkills = [];
     if (unsubscribeMessages) unsubscribeMessages();
