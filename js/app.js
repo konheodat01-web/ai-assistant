@@ -79,9 +79,18 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-document.getElementById('login-google-btn').addEventListener('click', () => {
-  // Thay thế signInWithPopup bằng signInWithRedirect để sửa lỗi Cross-Origin-Opener-Policy trên Github Pages
-  auth.signInWithRedirect(provider);
+document.getElementById('login-google-btn').addEventListener('click', async () => {
+  try {
+    // Dùng popup để tránh redirect loop trên GitHub Pages
+    await auth.signInWithPopup(provider);
+  } catch (err) {
+    if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+      // Fallback: dùng redirect nếu popup bị block
+      auth.signInWithRedirect(provider);
+    } else {
+      console.error('Login error:', err.code, err.message);
+    }
+  }
 });
 
 logoutBtn.addEventListener('click', () => {
