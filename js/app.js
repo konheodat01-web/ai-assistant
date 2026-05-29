@@ -35,7 +35,7 @@ let currentUser = null;
 let unsubscribeMessages = null;
 let unsubscribeSkills = null;
 let userSkills = [];
-let isExpertMode = false;
+let currentMode = 'normal'; // 'normal', 'expert', 'learning'
 
 // ===== DOM REFS =====
 const chatArea = document.getElementById('chat-area');
@@ -225,6 +225,42 @@ async function sendMessage() {
   // Lưu tin nhắn lên Firebase → UI sẽ tự render thông qua onSnapshot
   await db.collection('users').doc(currentUser.uid).collection('messages').add(userMsg);
 
+  // Nếu đang ở CHẾ ĐỘ HỌC TẬP -> Đẩy thẳng lên Qdrant, KHÔNG hỏi AI
+  if (currentMode === 'learning') {
+    isProcessing = true;
+    showTyping();
+    try {
+      const textBlob = new Blob([text], { type: 'text/plain' });
+      const textFile = new File([textBlob], `KienThucNhanh_${Date.now()}.txt`);
+      const formData = new FormData();
+      formData.append('data', textFile);
+      
+      const res = await fetch('https://103.82.195.87/webhook/upload-docs', {
+        method: 'POST',
+        body: formData
+      });
+      await res.json();
+      
+      await db.collection('users').doc(currentUser.uid).collection('messages').add({
+        role: 'assistant',
+        content: `📚 **Đã học thuộc!** Kiến thức vừa rồi đã được cất vào Second Brain.`,
+        time: getTimeStr(),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch(err) {
+      await db.collection('users').doc(currentUser.uid).collection('messages').add({
+        role: 'assistant',
+        content: `❌ Lỗi khi học kiến thức mới: ${err.message}`,
+        time: getTimeStr(),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    isProcessing = false;
+    hideTyping();
+    msgInput.focus();
+    return;
+  }
+
   showTyping();
 
   try {
@@ -238,7 +274,7 @@ async function sendMessage() {
         // Gửi history thuần không có Firebase serverTimestamp field để tránh lỗi json
         history: chatHistory.slice(-10).map(m => ({ role: m.role, content: m.content })),
         skills: userSkills.map(s => ({ name: s.name, content: s.content })), // Truyền kỹ năng vào cho WFL1
-        mode: isExpertMode ? 'expert' : 'normal',
+        mode: currentMode,
         timestamp: new Date().toISOString(),
         source: 'pwa-app',
         userName: userSettings.name 
@@ -328,7 +364,7 @@ async function autoReplyToAi(text) {
           message: text,
           history: chatHistory.slice(-10).map(m => ({ role: m.role, content: m.content })),
           skills: userSkills.map(s => ({ name: s.name, content: s.content })),
-          mode: isExpertMode ? 'expert' : 'normal',
+          mode: currentMode,
           timestamp: new Date().toISOString(),
           source: 'pwa-app',
           userName: userSettings.name 
@@ -371,17 +407,27 @@ const modeIcon = document.getElementById('mode-icon');
 const modeText = document.getElementById('mode-text');
 
 modeToggleBtn.addEventListener('click', () => {
-  isExpertMode = !isExpertMode;
-  if (isExpertMode) {
+  if (currentMode === 'normal') {
+    currentMode = 'expert';
     modeIcon.textContent = '🧠';
     modeText.textContent = 'Chế độ Chuyên gia';
     modeToggleBtn.style.color = '#4facfe';
     modeToggleBtn.style.borderColor = '#4facfe';
+    msgInput.placeholder = "Hỏi kiến thức sâu từ Second Brain...";
+  } else if (currentMode === 'expert') {
+    currentMode = 'learning';
+    modeIcon.textContent = '📚';
+    modeText.textContent = 'Chế độ Học tập';
+    modeToggleBtn.style.color = '#ff9900';
+    modeToggleBtn.style.borderColor = '#ff9900';
+    msgInput.placeholder = "Nhập kiến thức ngắn gọn để nạp vào não...";
   } else {
+    currentMode = 'normal';
     modeIcon.textContent = '⚡';
     modeText.textContent = 'Chế độ Cơ bản';
     modeToggleBtn.style.color = '#888';
     modeToggleBtn.style.borderColor = '#333';
+    msgInput.placeholder = "Nhập tin nhắn...";
   }
 });
 
