@@ -32,10 +32,18 @@
       <div class="header-name" id="user-name">Trợ lý AI</div>
       <div class="header-status" id="user-status">Đang kết nối...</div>
     </div>
-    <button class="header-btn" id="logout-btn" title="Đăng xuất" style="display:none; font-size:14px">🚪</button>
-    <button class="header-btn" id="clear-btn" title="Xóa hội thoại">🗑️</button>
-    <button class="header-btn" id="skills-btn" title="Kho kỹ năng">🧠</button>
-    <button class="header-btn" id="settings-btn" title="Cài đặt">⚙️</button>
+    <div class="header-right">
+      <div class="settings-dropdown">
+        <button id="main-menu-btn" class="icon-btn" title="Menu">⚙️</button>
+        <div id="main-menu-content" class="dropdown-content">
+          <button id="toggle-sidebar" class="dropdown-item"><span>🗂️</span> Lịch sử chat</button>
+          <button id="skills-btn" class="dropdown-item"><span>🧠</span> Kho Kỹ Năng</button>
+          <button id="clear-chat-btn" class="dropdown-item"><span>🗑️</span> Xóa chat hiện tại</button>
+          <div class="dropdown-divider"></div>
+          <button id="settings-btn" class="dropdown-item"><span>⚙️</span> Cài đặt hệ thống</button>
+        </div>
+      </div>
+    </div>
   </header>
 
   <!-- CHAT AREA -->
@@ -53,26 +61,42 @@
 
   <!-- INPUT AREA -->
   <footer class="input-area">
-    <div style="padding: 0 16px 8px 16px; display: flex; gap: 8px; flex-wrap: wrap;">
-      <button id="mode-toggle" style="background: var(--bg-color); border: 1px solid #333; color: #888; border-radius: 20px; padding: 4px 12px; font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px;">
-        <span id="mode-icon">⚡</span> <span id="mode-text">Chế độ Cơ bản</span>
-      </button>
-      <label for="doc-upload" id="upload-btn" style="background: var(--bg-color); border: 1px solid #333; color: #888; border-radius: 20px; padding: 4px 12px; font-size: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px;">
-        📎 Nạp tài liệu
-      </label>
-      <input type="file" id="doc-upload" accept=".pdf,.txt,.docx" style="display:none" multiple>
+    <div class="pill-container">
+      
+      <!-- Upload Dropup -->
+      <div class="action-menu-wrapper">
+        <button id="action-plus-btn" class="pill-btn plus-btn" title="Đính kèm">+</button>
+        <div id="action-upload-menu" class="dropup-content">
+          <label for="doc-upload" class="dropup-item">
+            <span>📎</span> Nạp tài liệu vào não
+          </label>
+          <input type="file" id="doc-upload" accept=".pdf,.txt,.docx" style="display:none" multiple>
+        </div>
+      </div>
+
+      <!-- Ô nhập liệu -->
+      <textarea id="msg-input" placeholder="Hỏi AI Assistant..." rows="1"></textarea>
+
+      <!-- Mode Dropup -->
+      <div class="action-menu-wrapper">
+        <button id="mode-toggle-btn" class="pill-btn mode-btn">
+           <span id="mode-icon">⚡</span> <span id="mode-text-short">Flash</span> <span class="caret">▾</span>
+        </button>
+        <div id="mode-menu" class="dropup-content mode-dropup">
+          <div class="dropup-item mode-item active" data-mode="normal">
+             <span>⚡</span> Cơ bản
+          </div>
+          <div class="dropup-item mode-item" data-mode="expert">
+             <span>🧠</span> Chuyên gia
+          </div>
+          <div class="dropup-item mode-item" data-mode="learning">
+             <span>📚</span> Học tập
+          </div>
+        </div>
+      </div>
+
+      <button id="send-btn" class="pill-send-btn">➤</button>
     </div>
-    <div class="input-wrap">
-      <textarea
-        id="msg-input"
-        placeholder="Nhắn lệnh hoặc đặt câu hỏi..."
-        rows="1"
-        autocomplete="off"
-        autocorrect="off"
-        spellcheck="false"
-      ></textarea>
-    </div>
-    <button class="send-btn" id="send-btn" title="Gửi">➤</button>
   </footer>
 
 </div>

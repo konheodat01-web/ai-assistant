@@ -389,3 +389,101 @@ html, body {
   #app { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
   body { background: #07070f; }
 }
+
+/* ===== NEW UI OVERHAUL ===== */
+.header-right { position: relative; }
+.settings-dropdown { position: relative; }
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; transition: all 0.2s;
+}
+.icon-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+.dropdown-content {
+  display: none; position: absolute; right: 0; top: 44px;
+  background: var(--bg-card); min-width: 180px;
+  border-radius: 12px; border: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  flex-direction: column; padding: 8px; z-index: 50;
+}
+.dropdown-content.show { display: flex; animation: fadeInUp 0.2s ease; }
+.dropdown-item {
+  background: transparent; border: none; color: var(--text-primary);
+  padding: 10px 12px; text-align: left; font-size: 14px;
+  border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: background 0.2s;
+}
+.dropdown-item:hover { background: var(--bg-input); }
+.dropdown-divider { height: 1px; background: var(--border); margin: 6px 0; }
+
+/* PILL INPUT AREA */
+.input-area {
+  padding: 12px 16px; background: var(--bg-primary); border-top: none;
+}
+.pill-container {
+  display: flex; align-items: flex-end; gap: 8px;
+  background: var(--bg-input); border-radius: 28px;
+  padding: 8px 12px; border: 1px solid var(--border);
+  transition: border-color 0.2s; position: relative;
+}
+.pill-container:focus-within { border-color: var(--text-secondary); }
+
+.pill-btn {
+  background: transparent; border: none; color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: 50%; transition: all 0.2s;
+}
+.plus-btn { width: 32px; height: 32px; font-size: 24px; font-weight: 300; }
+.plus-btn:hover { background: var(--bg-card); color: var(--text-primary); }
+
+.mode-btn {
+  padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: 500;
+  gap: 4px; color: var(--text-primary); background: var(--bg-card);
+}
+.mode-btn:hover { background: var(--border); }
+.caret { font-size: 10px; opacity: 0.7; }
+
+.pill-send-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent); color: white; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; transition: transform 0.2s;
+}
+.pill-send-btn:hover { transform: scale(1.1); }
+.pill-send-btn:disabled { background: var(--border); color: var(--text-muted); transform: none; }
+
+#msg-input {
+  flex: 1; background: transparent; border: none; color: var(--text-primary);
+  font-size: 15px; resize: none; padding: 6px 0; max-height: 120px;
+  font-family: var(--font); outline: none; line-height: 1.4;
+}
+#msg-input::placeholder { color: var(--text-muted); }
+
+/* DROPUP MENUS */
+.action-menu-wrapper { position: relative; display: flex; align-items: flex-end; }
+.dropup-content {
+  display: none; position: absolute; bottom: 100%; left: 0;
+  margin-bottom: 8px; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 8px; box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+  flex-direction: column; min-width: 180px; z-index: 50;
+}
+.mode-dropup { left: auto; right: 0; min-width: 150px; }
+.dropup-content.show { display: flex; animation: slideUpSmall 0.2s ease; }
+@keyframes slideUpSmall {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropup-item {
+  padding: 10px 12px; display: flex; align-items: center; gap: 8px;
+  font-size: 14px; color: var(--text-primary); cursor: pointer;
+  border-radius: 8px; transition: background 0.2s;
+}
+.dropup-item:hover { background: var(--bg-input); }
+.dropup-item.active { background: var(--accent-glow); color: var(--accent); }

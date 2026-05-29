@@ -401,34 +401,77 @@ msgInput.addEventListener('keydown', e => {
 });
 sendBtn.addEventListener('click', sendMessage);
 
-// ===== MODE TOGGLE =====
-const modeToggleBtn = document.getElementById('mode-toggle');
+// ===== UI OVERHAUL LOGIC =====
+const mainMenuBtn = document.getElementById('main-menu-btn');
+const mainMenuContent = document.getElementById('main-menu-content');
+const actionPlusBtn = document.getElementById('action-plus-btn');
+const actionUploadMenu = document.getElementById('action-upload-menu');
+const modeToggleBtn = document.getElementById('mode-toggle-btn');
+const modeMenu = document.getElementById('mode-menu');
 const modeIcon = document.getElementById('mode-icon');
-const modeText = document.getElementById('mode-text');
+const modeTextShort = document.getElementById('mode-text-short');
+const modeItems = document.querySelectorAll('.mode-item');
 
-modeToggleBtn.addEventListener('click', () => {
-  if (currentMode === 'normal') {
-    currentMode = 'expert';
-    modeIcon.textContent = '🧠';
-    modeText.textContent = 'Chế độ Chuyên gia';
-    modeToggleBtn.style.color = '#4facfe';
-    modeToggleBtn.style.borderColor = '#4facfe';
-    msgInput.placeholder = "Hỏi kiến thức sâu từ Second Brain...";
-  } else if (currentMode === 'expert') {
-    currentMode = 'learning';
-    modeIcon.textContent = '📚';
-    modeText.textContent = 'Chế độ Học tập';
-    modeToggleBtn.style.color = '#ff9900';
-    modeToggleBtn.style.borderColor = '#ff9900';
-    msgInput.placeholder = "Nhập kiến thức ngắn gọn để nạp vào não...";
-  } else {
-    currentMode = 'normal';
-    modeIcon.textContent = '⚡';
-    modeText.textContent = 'Chế độ Cơ bản';
-    modeToggleBtn.style.color = '#888';
-    modeToggleBtn.style.borderColor = '#333';
-    msgInput.placeholder = "Nhập tin nhắn...";
+function closeAllMenus() {
+  if (mainMenuContent) mainMenuContent.classList.remove('show');
+  if (actionUploadMenu) actionUploadMenu.classList.remove('show');
+  if (modeMenu) modeMenu.classList.remove('show');
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.settings-dropdown') && !e.target.closest('.action-menu-wrapper')) {
+    closeAllMenus();
   }
+});
+
+if (mainMenuBtn) {
+  mainMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isShowing = mainMenuContent.classList.contains('show');
+    closeAllMenus();
+    if (!isShowing) mainMenuContent.classList.add('show');
+  });
+}
+
+if (actionPlusBtn) {
+  actionPlusBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isShowing = actionUploadMenu.classList.contains('show');
+    closeAllMenus();
+    if (!isShowing) actionUploadMenu.classList.add('show');
+  });
+}
+
+if (modeToggleBtn) {
+  modeToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isShowing = modeMenu.classList.contains('show');
+    closeAllMenus();
+    if (!isShowing) modeMenu.classList.add('show');
+  });
+}
+
+modeItems.forEach(item => {
+  item.addEventListener('click', () => {
+    modeItems.forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    currentMode = item.dataset.mode;
+    
+    if (currentMode === 'expert') {
+      modeIcon.textContent = '🧠'; modeTextShort.textContent = 'Chuyên gia';
+      modeToggleBtn.style.color = '#4facfe';
+      msgInput.placeholder = "Hỏi Second Brain...";
+    } else if (currentMode === 'learning') {
+      modeIcon.textContent = '📚'; modeTextShort.textContent = 'Học tập';
+      modeToggleBtn.style.color = '#ff9900';
+      msgInput.placeholder = "Nạp kiến thức ngắn...";
+    } else {
+      modeIcon.textContent = '⚡'; modeTextShort.textContent = 'Flash';
+      modeToggleBtn.style.color = 'var(--text-primary)';
+      msgInput.placeholder = "Hỏi AI Assistant...";
+    }
+    closeAllMenus();
+  });
 });
 
 // ===== UPLOAD TÀI LIỆU (SECOND BRAIN) =====
@@ -525,7 +568,7 @@ document.getElementById('btn-add-skill').addEventListener('click', async () => {
 });
 
 // ===== CLEAR CHAT =====
-document.getElementById('clear-btn').addEventListener('click', async () => {
+document.getElementById('clear-chat-btn').addEventListener('click', async () => {
   if (!currentUser) return;
   
   if (confirm('⚠️ Bạn muốn xóa toàn bộ lịch sử hội thoại trên TẤT CẢ thiết bị?\\n\\nHành động này không thể hoàn tác!')) {
