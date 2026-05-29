@@ -356,6 +356,24 @@ function init() {
       console.log('SW registered');
       setTimeout(() => requestNotificationPermission(), 3000);
     }).catch(() => {});
+
+    // Lắng nghe tín hiệu báo lỗi từ Service Worker (do n8n Push về)
+    navigator.serviceWorker.addEventListener('message', async event => {
+      if (event.data && event.data.type === 'push_received') {
+        const payload = event.data.data;
+        // Nếu là báo lỗi (isError) và user đang đăng nhập
+        if (payload.isError && currentUser) {
+          try {
+            await db.collection('users').doc(currentUser.uid).collection('messages').add({
+              role: 'assistant',
+              content: `❌ **LỖI HỆ THỐNG:**\n\n${payload.body}`,
+              time: getTimeStr(),
+              timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } catch(e) { console.error('Lỗi ghi log:', e); }
+        }
+      }
+    });
   }
 
   msgInput.focus();

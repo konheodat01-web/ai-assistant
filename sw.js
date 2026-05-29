@@ -34,22 +34,31 @@ self.addEventListener('fetch', e => {
 
 // ===== PUSH NOTIFICATIONS =====
 self.addEventListener('push', e => {
-  let data = { title: 'Trợ lý AI', body: 'Có thông báo mới!', icon: './icons/icon-192.png', url: './' };
-  try { data = { ...data, ...e.data.json() }; } catch(err) {}
+  let data = { title: 'Thông báo', body: 'Bạn có thông báo mới!', url: '/' };
+  try {
+    if (e.data) {
+      data = e.data.json();
+    }
+  } catch(err) {}
 
+  const options = {
+    body: data.body,
+    icon: 'assets/icon-192.png',
+    badge: 'assets/icon-192.png',
+    data: data,
+    vibrate: [200, 100, 200]
+  };
+  
+  // Gửi data sang cho các tab đang mở
   e.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: data.icon || './icons/icon-192.png',
-      badge: './icons/icon-192.png',
-      vibrate: [200, 100, 200],
-      data: { url: data.url || './' },
-      actions: [
-        { action: 'open', title: '📱 Mở app' },
-        { action: 'dismiss', title: 'Bỏ qua' }
-      ],
-      requireInteraction: false,
-      tag: 'ai-notification' // Ghi đè notification cũ thay vì stack
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      clients.forEach(client => {
+        client.postMessage({ type: 'push_received', data: data });
+      });
+    }).then(() => {
+      // Chỉ hiện thông báo notification nếu không phải là silent notification
+      if (data.silent) return null;
+      return self.registration.showNotification(data.title, options);
     })
   );
 });
