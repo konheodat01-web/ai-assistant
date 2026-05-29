@@ -461,7 +461,9 @@ html, body {
   flex: 1; background: transparent; border: none; color: var(--text-primary);
   font-size: 15px; resize: none; padding: 6px 0; max-height: 120px;
   font-family: var(--font); outline: none; line-height: 1.4;
+  scrollbar-width: none; /* Firefox */
 }
+#msg-input::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
 #msg-input::placeholder { color: var(--text-muted); }
 
 /* DROPUP MENUS */
