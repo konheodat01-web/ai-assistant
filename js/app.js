@@ -1,6 +1,7 @@
 // ===== CONFIG =====
 const CONFIG = {
   webhookUrl: localStorage.getItem('webhookUrl') || 'https://103.82.195.87/webhook/ai-orchestrator',
+  // n8n VPS: 103.82.195.87 | WFL1 ID: EQ0tkGzUdSQX16bu | WFL2 ID: wwM3d54FCIhOo5MB
   botName: 'Trợ lý AI',
 };
 
