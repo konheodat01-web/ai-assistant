@@ -69,6 +69,9 @@ auth.onAuthStateChanged(user => {
 
     loadMessages();
     loadSkills();
+
+    // Request push notification permission after login (not on page load)
+    setTimeout(() => requestNotificationPermission(), 2000);
   } else {
     currentUser = null;
     loginOverlay.style.display = 'flex';
@@ -677,7 +680,7 @@ function init() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       console.log('SW registered');
-      setTimeout(() => requestNotificationPermission(), 3000);
+      // Permission request moved to after login
     }).catch(() => {});
 
     // Lắng nghe tín hiệu báo lỗi từ Service Worker (do n8n Push về)
