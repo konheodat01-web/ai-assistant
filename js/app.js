@@ -1,6 +1,6 @@
 // ===== CONFIG =====
 const CONFIG = {
-  webhookUrl: localStorage.getItem('webhookUrl') || 'https://103.82.195.87/webhook/ai-orchestrator',
+  webhookUrl: localStorage.getItem('webhookUrl') || 'https://103.82.195.87/webhook/ai-orchestrator-v3',
   pushServerUrl: 'https://103.82.195.87/push',
   vapidPublicKey: 'BB7YphPy5ZbDpecs8B9lhOnLoAQ7aSTHEUKVhxV7PH8ZITMSf0pTwYvi9SBh794p-E3GNyyiP4DJPb4iQHYogmI',
   botName: 'Trợ lý AI',
