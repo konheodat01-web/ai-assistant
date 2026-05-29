@@ -323,14 +323,18 @@ async function sendMessage() {
     // XỬ LÝ CLIENT-SIDE TOOLS
     if (data.tool_executed === 'save_skill') {
       try {
-        await db.collection('users').doc(currentUser.uid).collection('skills').add({
+        const savePromise = db.collection('users').doc(currentUser.uid).collection('skills').add({
           name: data.tool_args.skill_name || 'Kỹ năng mới',
           content: data.tool_args.instructions || '',
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
+        const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
+        await Promise.race([savePromise, timeoutPromise]);
         reply = `✅ **Đã ghi nhớ kỹ năng mới:** ${data.tool_args.skill_name}`;
       } catch (err) {
-        reply = `❌ Lỗi khi lưu kỹ năng: ${err.message}`;
+        reply = err.message === 'timeout'
+          ? `⚠️ **Lưu kỹ năng chậm** — sẽ thử lại lần sau. AI đã nhớ trong phiên này.`
+          : `❌ Lỗi khi lưu kỹ năng: ${err.message}`;
       }
     } else if (data.tool_executed === 'search_second_brain') {
       reply = `🔍 Đang lục lọi trong Second Brain với từ khóa: **${data.tool_args.query}**...`;
