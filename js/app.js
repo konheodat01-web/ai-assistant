@@ -6,24 +6,33 @@ const CONFIG = {
   botName: 'Trợ lý AI',
 };
 
+// ===== FIREBASE CONFIG & INIT =====
+const firebaseConfig = {
+  apiKey: "AIzaSyBfWldaesyZpAepyI8DQoYS3qv5YV1Y8dk",
+  authDomain: "task-manager-ac80a.firebaseapp.com",
+  databaseURL: "https://task-manager-ac80a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "task-manager-ac80a",
+  storageBucket: "task-manager-ac80a.firebasestorage.app",
+  messagingSenderId: "102128220358",
+  appId: "1:102128220358:web:8d1423e0ade80bf59ebfc7",
+  measurementId: "G-5TZ2KSK268"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
+
 // ===== USER SETTINGS =====
 const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"name":"Chủ hệ thống"}');
 function saveSettings() { localStorage.setItem('userSettings', JSON.stringify(userSettings)); }
 
 // ===== STATE =====
-let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+let chatHistory = [];
 let isProcessing = false;
-
-// Lưu lịch sử ngay lập tức - gọi sau mỗi thay đổi
-function saveHistory() {
-  try {
-    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-  } catch(e) {
-    // localStorage đầy, xóa tin cũ nhất
-    if (chatHistory.length > 50) chatHistory = chatHistory.slice(-50);
-    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-  }
-}
+let currentUser = null;
+let unsubscribeMessages = null;
 
 // ===== DOM REFS =====
 const chatArea = document.getElementById('chat-area');
@@ -31,6 +40,72 @@ const msgInput = document.getElementById('msg-input');
 const sendBtn = document.getElementById('send-btn');
 const typingIndicator = document.getElementById('typing-indicator');
 const settingsOverlay = document.getElementById('settings-overlay');
+const loginOverlay = document.getElementById('login-overlay');
+const logoutBtn = document.getElementById('logout-btn');
+
+// ===== AUTH STATE CHANGED =====
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+    loginOverlay.style.display = 'none';
+    logoutBtn.style.display = 'block';
+    
+    // Cập nhật Header
+    document.getElementById('user-name').textContent = user.displayName || 'Trợ lý AI';
+    if(user.photoURL) document.getElementById('user-avatar').innerHTML = `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+    document.getElementById('user-status').textContent = 'Đã đồng bộ • Online';
+    
+    userSettings.name = user.displayName;
+    saveSettings();
+
+    loadMessages();
+  } else {
+    currentUser = null;
+    loginOverlay.style.display = 'flex';
+    logoutBtn.style.display = 'none';
+    chatHistory = [];
+    if (unsubscribeMessages) unsubscribeMessages();
+  }
+});
+
+document.getElementById('login-google-btn').addEventListener('click', () => {
+  auth.signInWithPopup(provider).catch(err => alert("Lỗi đăng nhập: " + err.message));
+});
+
+logoutBtn.addEventListener('click', () => {
+  auth.signOut();
+  location.reload();
+});
+
+// ===== LOAD FIRESTORE MESSAGES =====
+function loadMessages() {
+  const msgsRef = db.collection('users').doc(currentUser.uid).collection('messages').orderBy('timestamp', 'asc');
+  
+  // Xóa tin nhắn cũ trên UI
+  const msgs = chatArea.querySelectorAll('.msg-group');
+  msgs.forEach(m => m.remove());
+  const welcomeMsg = document.getElementById('welcome-msg');
+  if (welcomeMsg) welcomeMsg.remove();
+  
+  chatHistory = []; 
+  
+  unsubscribeMessages = msgsRef.onSnapshot(snapshot => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'added') {
+        const data = change.doc.data();
+        chatHistory.push(data); // Dùng history này gửi lên WFL1
+        appendMessage(data.role, data.content, data.time);
+      }
+    });
+    
+    if (chatHistory.length === 0) {
+      showWelcome();
+    } else {
+      const welcomeMsg = document.getElementById('welcome-msg');
+      if (welcomeMsg) welcomeMsg.remove();
+    }
+  });
+}
 
 // ===== QUICK ACTIONS =====
 const QUICK_ACTIONS = [
@@ -84,7 +159,6 @@ function appendMessage(role, content, time) {
 }
 
 function formatContent(text) {
-  // Convert markdown-like formatting
   return text
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -110,7 +184,7 @@ function scrollToBottom() {
 // ===== SEND MESSAGE =====
 async function sendMessage() {
   const text = msgInput.value.trim();
-  if (!text || isProcessing) return;
+  if (!text || isProcessing || !currentUser) return;
 
   isProcessing = true;
   sendBtn.disabled = true;
@@ -118,15 +192,17 @@ async function sendMessage() {
   autoResize();
   document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
 
-  // Show user message
   const timeStr = getTimeStr();
-  appendMessage('user', text, timeStr);
+  const userMsg = {
+    role: 'user',
+    content: text,
+    time: timeStr,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  };
 
-  // Lưu tin nhắn user ngay lập tức
-  chatHistory.push({ role: 'user', content: text, time: timeStr });
-  saveHistory(); // ← lưu ngay, không chờ AI
+  // Lưu tin nhắn lên Firebase → UI sẽ tự render thông qua onSnapshot
+  await db.collection('users').doc(currentUser.uid).collection('messages').add(userMsg);
 
-  // Show typing
   showTyping();
 
   try {
@@ -137,10 +213,11 @@ async function sendMessage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: text,
-        history: chatHistory.slice(-10),
+        // Gửi history thuần không có Firebase serverTimestamp field để tránh lỗi json
+        history: chatHistory.slice(-10).map(m => ({ role: m.role, content: m.content })),
         timestamp: new Date().toISOString(),
         source: 'pwa-app',
-        userName: userSettings.name  // ← gửi tên user cho AI
+        userName: userSettings.name 
       })
     });
 
@@ -151,20 +228,26 @@ async function sendMessage() {
     const data = await response.json();
     const reply = data.result || data.message || data.output || JSON.stringify(data);
 
-    const aiTime = getTimeStr();
-    appendMessage('ai', reply, aiTime);
-    chatHistory.push({ role: 'assistant', content: reply, time: aiTime });
-    saveHistory(); // ← lưu sau khi AI trả lời
+    // Lưu phản hồi của AI lên Firebase → UI tự render
+    await db.collection('users').doc(currentUser.uid).collection('messages').add({
+      role: 'assistant',
+      content: reply,
+      time: getTimeStr(),
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
 
   } catch (err) {
     hideTyping();
-    // Lịch sử user message đã được lưu trước đó (saveHistory đã gọi)
-    // Chỉ thông báo lỗi, KHÔNG xóa lịch sử
     const errMsg = err.message.includes('Failed to fetch') || err.message.includes('NetworkError')
-      ? '⚠️ Không kết nối được tới server.\n\n👉 Vui lòng mở tab mới, vào **https://103.82.195.87** và bấm **Advanced → Proceed** để chấp nhận SSL cert, rồi thử lại.'
+      ? '⚠️ Không kết nối được tới server.\\n\\n👉 Vui lòng mở tab mới, vào **https://103.82.195.87** và bấm **Advanced → Proceed** để chấp nhận SSL cert, rồi thử lại.'
       : `❌ Lỗi: ${err.message}`;
-    appendMessage('ai', errMsg, getTimeStr());
-    // Không lưu tin nhắn lỗi vào history
+      
+    await db.collection('users').doc(currentUser.uid).collection('messages').add({
+      role: 'assistant',
+      content: errMsg,
+      time: getTimeStr(),
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
   }
 
   isProcessing = false;
@@ -206,25 +289,34 @@ document.getElementById('save-settings').addEventListener('click', () => {
   if (url) {
     localStorage.setItem('webhookUrl', url);
     settingsOverlay.classList.remove('show');
-    appendMessage('ai', '✅ Đã lưu cài đặt! Webhook URL đã được cập nhật.', getTimeStr());
+    // Save system message directly to UI
+    appendMessage('assistant', '✅ Đã lưu cài đặt! Webhook URL đã được cập nhật.', getTimeStr());
   }
 });
 
 // ===== CLEAR CHAT =====
-document.getElementById('clear-btn').addEventListener('click', () => {
-  // Yêu cầu xác nhận 2 lần để tránh xóa nhầm
-  if (confirm('⚠️ Bạn muốn xóa toàn bộ lịch sử hội thoại?\n\nHành động này không thể hoàn tác!')) {
+document.getElementById('clear-btn').addEventListener('click', async () => {
+  if (!currentUser) return;
+  
+  if (confirm('⚠️ Bạn muốn xóa toàn bộ lịch sử hội thoại trên TẤT CẢ thiết bị?\\n\\nHành động này không thể hoàn tác!')) {
     if (confirm('Xác nhận lần 2: Thực sự muốn xóa hết?')) {
-      chatHistory = [];
-      localStorage.removeItem('chatHistory');
+      // Xóa hàng loạt trên Firestore
+      const msgsRef = db.collection('users').doc(currentUser.uid).collection('messages');
+      const snapshot = await msgsRef.get();
+      const batch = db.batch();
+      snapshot.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      
       const msgs = chatArea.querySelectorAll('.msg-group');
       msgs.forEach(m => m.remove());
+      chatHistory = [];
       showWelcome();
     }
   }
 });
 
 function showWelcome() {
+  if(document.getElementById('welcome-msg')) return;
   const welcome = document.createElement('div');
   welcome.className = 'welcome';
   welcome.id = 'welcome-msg';
@@ -251,14 +343,13 @@ async function subscribePush() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
-    if (sub) return; // Đã đăng ký rồi
+    if (sub) return;
 
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(CONFIG.vapidPublicKey)
     });
 
-    // Gửi subscription lên push server
     await fetch(CONFIG.pushServerUrl + '/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -286,23 +377,10 @@ async function requestNotificationPermission() {
 function init() {
   renderQuickActions();
 
-  // Khôi phục lịch sử chat từ localStorage
-  if (chatHistory.length === 0) {
-    showWelcome();
-  } else {
-    chatHistory.forEach(msg => {
-      const role = msg.role === 'user' ? 'user' : 'ai';
-      appendMessage(role, msg.content, msg.time || '');
-    });
-    // Scroll xuống tin mới nhất
-    setTimeout(() => scrollToBottom(), 100);
-  }
-
   // Register service worker + push
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       console.log('SW registered');
-      // Hỏi xin quyền notification sau 3 giây (không hỏi ngay khi vào)
       setTimeout(() => requestNotificationPermission(), 3000);
     }).catch(() => {});
   }
@@ -310,4 +388,4 @@ function init() {
   msgInput.focus();
 }
 
-init();
+window.onload = init;
