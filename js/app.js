@@ -661,32 +661,34 @@ function updateBellUI() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function initBellBtn() {
   const bellBtn = document.getElementById('notif-bell-btn');
   if (!bellBtn) return;
 
   updateBellUI();
 
-  bellBtn.addEventListener('click', async () => {
-    const perm = Notification.permission;
+  bellBtn.addEventListener('click', async (e) => {
+    e.stopPropagation(); // Giữ dropdown mở khi click
+    const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
 
     if (perm === 'granted') {
-      // Already granted — show status toast
       showBellToast('🔔 Thông báo đang BẬT', 'Bạn sẽ nhận được cảnh báo từ hệ thống kể cả khi thu nhỏ app.', '#00b96b');
     } else if (perm === 'denied') {
-      // Denied — guide to unblock
-      showBellToast('🔕 Thông báo đang BỊ CHẶN', 'Vào thanh địa chỉ → click 🔒 → Site settings → Notifications → Allow → Reload trang.', '#ff4d4f');
+      showBellToast('🔕 Thông báo đang BỊ CHẶN', 'Vào thanh địa chỉ → click 🔒 → Site settings → Notifications → chọn Allow → Reload trang.', '#ff4d4f');
+    } else if (perm === 'unsupported') {
+      showBellToast('⚠️ Không hỗ trợ', 'Trình duyệt này không hỗ trợ push notification.', '#ffa940');
     } else {
-      // Not yet asked — request now
       const result = await Notification.requestPermission();
       updateBellUI();
       if (result === 'granted') {
         await subscribePush();
         showBellToast('🔔 Đã bật thông báo!', 'Bạn sẽ nhận được cảnh báo từ hệ thống ngay cả khi thu nhỏ app.', '#00b96b');
+      } else {
+        showBellToast('🔕 Đã từ chối', 'Vào Site Settings → Notifications → Allow để bật lại.', '#ff4d4f');
       }
     }
   });
-});
+}
 
 function showBellToast(title, msg, color) {
   const existing = document.getElementById('bell-toast');
@@ -766,6 +768,7 @@ function init() {
   }
 
   msgInput.focus();
+  initBellBtn();
 }
 
 window.onload = init;
