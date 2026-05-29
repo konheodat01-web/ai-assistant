@@ -250,6 +250,35 @@ async function sendMessage() {
   // Lưu tin nhắn lên Firebase → UI sẽ tự render thông qua onSnapshot
   await db.collection('users').doc(currentUser.uid).collection('messages').add(userMsg);
 
+  // ===== CLIENT-SIDE SKILL DETECTION (không cần chờ n8n) =====
+  // Nếu user nói "học kỹ năng mới: ..." → lưu ngay vào Firestore luôn
+  const skillMatch = text.match(/^(?:học kỹ năng(?: mới)?|dạy kỹ năng|ghi nhớ kỹ năng)[:\-]\s*(.+)/is);
+  if (skillMatch && currentUser) {
+    const skillContent = skillMatch[1].trim();
+    const skillName = skillContent.length > 40 ? skillContent.substring(0, 40) + '...' : skillContent;
+    try {
+      await db.collection('users').doc(currentUser.uid).collection('skills').add({
+        name: skillName,
+        content: skillContent,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      await db.collection('users').doc(currentUser.uid).collection('messages').add({
+        role: 'assistant',
+        content: `✅ **Đã học kỹ năng mới!**\n\n**"${skillName}"**\n\nKỹ năng đã được lưu vào Kho Kỹ Năng. Tôi sẽ áp dụng trong các câu trả lời sau.`,
+        time: getTimeStr(),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (e) {
+      await db.collection('users').doc(currentUser.uid).collection('messages').add({
+        role: 'assistant', content: `❌ Lỗi lưu kỹ năng: ${e.message}`,
+        time: getTimeStr(), timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    isProcessing = false; sendBtn.disabled = false; msgInput.focus();
+    return; // Không cần gọi n8n
+  }
+
+
   // Nếu đang ở CHẾ ĐỘ HỌC TẬP -> Đẩy thẳng lên Qdrant, KHÔNG hỏi AI
   if (currentMode === 'learning') {
     isProcessing = true;
