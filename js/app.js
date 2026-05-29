@@ -108,31 +108,6 @@ function loadMessages() {
   });
 }
 
-// ===== QUICK ACTIONS =====
-const QUICK_ACTIONS = [
-  { icon: '🔍', label: 'Kiểm tra GSC', msg: 'Kiểm tra trạng thái GSC cho tất cả domain trong danh sách' },
-  { icon: '✅', label: 'Thêm GSC', msg: 'Thêm GSC cho ' },
-  { icon: '🗺️', label: 'Nộp Sitemap', msg: 'Nộp sitemap cho ' },
-  { icon: '📝', label: 'Viết bài SEO', msg: 'Viết bài SEO về chủ đề: ' },
-  { icon: '📊', label: 'Báo cáo', msg: 'Báo cáo tổng hợp hôm nay' },
-];
-
-function renderQuickActions() {
-  const container = document.getElementById('quick-actions');
-  container.innerHTML = QUICK_ACTIONS.map((a, i) =>
-    `<button class="quick-btn" onclick="useQuickAction(${i})"><span>${a.icon}</span>${a.label}</button>`
-  ).join('');
-}
-
-function useQuickAction(i) {
-  const action = QUICK_ACTIONS[i];
-  msgInput.value = action.msg;
-  msgInput.focus();
-  document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.quick-btn')[i].classList.add('active');
-  autoResize();
-}
-
 // ===== RENDER MESSAGES =====
 function getTimeStr() {
   return new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -191,7 +166,6 @@ async function sendMessage() {
   sendBtn.disabled = true;
   msgInput.value = '';
   autoResize();
-  document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
 
   const timeStr = getTimeStr();
   const userMsg = {
@@ -376,8 +350,6 @@ async function requestNotificationPermission() {
 
 // ===== INIT =====
 function init() {
-  renderQuickActions();
-
   // Register service worker + push
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
