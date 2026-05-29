@@ -22,7 +22,11 @@ self.addEventListener('fetch', e => {
   if (url.origin !== self.location.origin) return; // Không can thiệp request ngoài
   e.respondWith(
     fetch(e.request).then(res => {
-      if (res.ok) caches.open(CACHE_NAME).then(c => c.put(e.request, res.clone()));
+      if (!res || res.status !== 200 || res.type !== 'basic') {
+        return res;
+      }
+      const responseToCache = res.clone();
+      caches.open(CACHE_NAME).then(c => c.put(e.request, responseToCache));
       return res;
     }).catch(() => caches.match(e.request))
   );
