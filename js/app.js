@@ -80,14 +80,22 @@ auth.onAuthStateChanged(user => {
 });
 
 document.getElementById('login-google-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('login-google-btn');
+  btn.disabled = true;
   try {
-    // Dùng popup để tránh redirect loop trên GitHub Pages
     await auth.signInWithPopup(provider);
   } catch (err) {
-    if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
-      // Fallback: dùng redirect nếu popup bị block
-      auth.signInWithRedirect(provider);
-    } else {
+    btn.disabled = false;
+    if (err.code === 'auth/popup-blocked') {
+      // Chrome blocked the popup — show instructions
+      const msg = document.createElement('div');
+      msg.style.cssText = 'margin-top:12px;padding:10px 14px;background:#ff4d4f22;border:1px solid #ff4d4f66;border-radius:8px;color:#ff8080;font-size:13px;line-height:1.6;text-align:left';
+      msg.innerHTML = '🚫 <strong>Chrome đã chặn popup!</strong><br>Nhìn lên thanh địa chỉ → click icon 🔒 hoặc 🚫 → chọn <strong>"Luôn cho phép popup"</strong> → Thử lại.';
+      const existing = document.getElementById('popup-warning');
+      if (existing) existing.remove();
+      msg.id = 'popup-warning';
+      btn.parentNode.insertBefore(msg, btn.nextSibling);
+    } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
       console.error('Login error:', err.code, err.message);
     }
   }
