@@ -638,22 +638,26 @@ function urlBase64ToUint8Array(base64String) {
 
 // ===== NOTIFICATION BELL BUTTON =====
 function updateBellUI() {
-  const bell = document.getElementById('notif-bell-btn');
-  const dot = document.getElementById('notif-bell-dot');
-  if (!bell) return;
-  const perm = Notification.permission;
+  const icon = document.getElementById('notif-bell-icon');
+  const label = document.getElementById('notif-bell-label');
+  const btn = document.getElementById('notif-bell-btn');
+  if (!icon || !label) return;
+  const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
   if (perm === 'granted') {
-    bell.innerHTML = '🔔<span id="notif-bell-dot" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ff4d4f;border-radius:50%;border:2px solid #0f0f1a"></span>';
-    bell.style.opacity = '1';
-    bell.title = 'Thông báo: BẬT — Click để xem trạng thái';
+    icon.textContent = '🔔';
+    label.textContent = 'Thông báo — Đang BẬT';
+    label.style.color = '#00b96b';
+    btn.style.opacity = '1';
   } else if (perm === 'denied') {
-    bell.innerHTML = '🔕<span id="notif-bell-dot" style="display:block;position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ff4d4f;border-radius:50%;border:2px solid #0f0f1a"></span>';
-    bell.style.opacity = '0.6';
-    bell.title = 'Thông báo: TẮT — Click để hướng dẫn bật';
+    icon.textContent = '🔕';
+    label.textContent = 'Thông báo — Bị chặn';
+    label.style.color = '#ff4d4f';
+    btn.style.opacity = '0.8';
   } else {
-    bell.innerHTML = '🔔<span id="notif-bell-dot" style="display:block;position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ffa940;border-radius:50%;border:2px solid #0f0f1a"></span>';
-    bell.style.opacity = '0.7';
-    bell.title = 'Thông báo: CHƯA BẬT — Click để bật';
+    icon.textContent = '🔔';
+    label.textContent = 'Thông báo — Chưa bật';
+    label.style.color = '#ffa940';
+    btn.style.opacity = '0.9';
   }
 }
 

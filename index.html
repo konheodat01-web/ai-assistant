@@ -33,14 +33,14 @@
       <div class="header-status" id="user-status">Đang kết nối...</div>
     </div>
     <div class="header-right">
-      <!-- Notification Bell -->
-      <button id="notif-bell-btn" class="icon-btn" title="Thông báo" style="position:relative;font-size:18px">
-        🔔
-        <span id="notif-bell-dot" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ff4d4f;border-radius:50%;border:2px solid #0f0f1a"></span>
-      </button>
       <div class="settings-dropdown">
         <button id="main-menu-btn" class="icon-btn" title="Menu">⚙️</button>
         <div id="main-menu-content" class="dropdown-content">
+          <button id="notif-bell-btn" class="dropdown-item">
+            <span id="notif-bell-icon">🔔</span>
+            <span id="notif-bell-label">Thông báo — Chưa bật</span>
+          </button>
+          <div class="dropdown-divider"></div>
           <button id="skills-btn" class="dropdown-item"><span>🧠</span> Kho Kỹ Năng</button>
           <button id="clear-chat-btn" class="dropdown-item"><span>🗑️</span> Xóa chat hiện tại</button>
           <button id="logout-btn" class="dropdown-item"><span>🚪</span> Đăng xuất</button>
