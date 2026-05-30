@@ -240,11 +240,15 @@ function detectGscIntent(text) {
 }
 
 function detectEmailListIntent(text) {
-  return /(email|gmail|tài khoản).*(sẵn sàng|khả dụng|có thể|dùng|thêm gsc)/i.test(text) ||
-         /(sẵn sàng|khả dụng).*(email|gmail)/i.test(text) ||
-         /email nào.*(thêm|add|gsc)/i.test(text) ||
-         /các email/i.test(text) ||
-         /list.*email/i.test(text);
+  const t = text.toLowerCase();
+  const hasEmailWord = t.includes('email') || t.includes('gmail');
+  const hasReadyWord = t.includes('s\u1eb5n s\u00e0ng') || t.includes('kh\u1ea3 d\u1ee5ng') || t.includes('c\u00f3 th\u1ec3') || t.includes('d\u00f9ng');
+  const hasGscAdd = t.includes('th\u00eam gsc') || t.includes('add gsc');
+  const hasCacEmail = t.includes('c\u00e1c email') || t.includes('list email');
+  const hasEmailNao = t.includes('email n\u00e0o');
+  return (hasEmailWord && (hasReadyWord || hasGscAdd)) ||
+         hasCacEmail ||
+         hasEmailNao;
 }
 
 function extractDomain(text) {
