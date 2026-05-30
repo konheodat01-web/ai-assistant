@@ -212,8 +212,8 @@ function formatContent(text) {
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/`(.*?)`/g, '<code style="background:#2a2a4a;padding:1px 6px;border-radius:4px;font-size:13px;white-space:normal">$1</code>')
-    .replace(/✅|🎉/g, '<span style="font-size:16px">$&</span>');
-    // Không cần replace \n→<br> vì CSS white-space:pre-wrap xử lý rồi
+    .replace(/\u2705|\u1f389/g, '<span style="font-size:16px">$&</span>')
+    .replace(/\n/g, '<br>');
 }
 
 
@@ -271,7 +271,7 @@ function showEmailSelector(domain, emails, originalText) {
   document.getElementById('gsc-email-selector')?.remove();
 
   const group = document.createElement('div');
-  group.className = 'msg-group assistant';
+  group.className = 'msg-group ai';
   group.id = 'gsc-email-selector';
 
   let content = '';

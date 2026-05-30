@@ -178,7 +178,6 @@ html, body {
   position: relative;
   overflow-wrap: break-word;
   word-break: break-word;
-  white-space: pre-wrap;
 }
 
 .msg-group.ai .bubble {
@@ -186,12 +185,14 @@ html, body {
   border: 1px solid var(--border);
   border-bottom-left-radius: 6px;
   color: var(--text-primary);
+  white-space: normal;
 }
 .msg-group.user .bubble {
   background: linear-gradient(135deg, var(--accent), #8b5cf6);
   border-bottom-right-radius: 6px;
   color: white;
   box-shadow: 0 4px 20px var(--accent-glow);
+  white-space: pre-wrap;
 }
 
 .msg-time {
