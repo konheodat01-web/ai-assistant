@@ -211,10 +211,11 @@ function formatContent(text) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`(.*?)`/g, '<code style="background:#2a2a4a;padding:1px 6px;border-radius:4px;font-size:13px">$1</code>')
-    .replace(/✅|🎉/g, '<span style="font-size:16px">$&</span>')
-    .replace(/\n/g, '<br>');
+    .replace(/`(.*?)`/g, '<code style="background:#2a2a4a;padding:1px 6px;border-radius:4px;font-size:13px;white-space:normal">$1</code>')
+    .replace(/✅|🎉/g, '<span style="font-size:16px">$&</span>');
+    // Không cần replace \n→<br> vì CSS white-space:pre-wrap xử lý rồi
 }
+
 
 function showTyping() {
   typingIndicator.classList.add('show');

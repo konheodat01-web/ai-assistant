@@ -170,12 +170,15 @@ html, body {
 
 .bubble {
   max-width: 78%;
-  padding: 12px 16px;
+  min-width: 48px;
+  padding: 10px 14px;
   border-radius: var(--radius);
   font-size: 14px;
   line-height: 1.6;
   position: relative;
+  overflow-wrap: break-word;
   word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .msg-group.ai .bubble {
