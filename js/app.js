@@ -67,7 +67,7 @@ auth.onAuthStateChanged(user => {
     userSettings.name = user.displayName;
     saveSettings();
 
-    loadMessages();
+    migrateBadMessages().then(() => loadMessages());
     loadSkills();
 
     // Request push notification permission after login (not on page load)
@@ -108,6 +108,28 @@ logoutBtn.addEventListener('click', () => {
   auth.signOut();
   location.reload();
 });
+
+// ===== AUTO MIGRATION: xóa messages lỗi từ version cũ =====
+async function migrateBadMessages() {
+  if (!currentUser) return;
+  try {
+    const snap = await db.collection('users').doc(currentUser.uid).collection('messages').get();
+    const batch = db.batch();
+    let count = 0;
+    snap.docs.forEach(doc => {
+      const c = doc.data().content || '';
+      // Bug cũ: message bị append "\n→ thêm gsc" vào cuối
+      if (c.includes('\n\u2192 th\u00eam gsc') || c.endsWith('\u2192 th\u00eam gsc')) {
+        batch.delete(doc.ref);
+        count++;
+      }
+    });
+    if (count > 0) {
+      await batch.commit();
+      console.log('[Migration] Removed', count, 'malformed messages');
+    }
+  } catch(e) { /* silent fail */ }
+}
 
 // ===== LOAD FIRESTORE MESSAGES =====
 function loadMessages() {
