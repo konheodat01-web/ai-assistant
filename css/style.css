@@ -155,7 +155,7 @@ html, body {
 .msg-group.user { align-items: flex-end; }
 .msg-group.ai { align-items: flex-start; }
 
-.msg-row { display: flex; align-items: flex-end; gap: 8px; }
+.msg-row { display: flex; align-items: flex-end; gap: 8px; width: 100%; }
 .msg-group.user .msg-row { flex-direction: row-reverse; }
 
 .msg-avatar {
