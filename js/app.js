@@ -1,6 +1,6 @@
 // ===== CONFIG =====
 const CONFIG = {
-  webhookUrl: localStorage.getItem('webhookUrl') || 'https://103.82.195.87/webhook/ai-orchestrator-v3',
+  webhookUrl: localStorage.getItem('webhookUrl') || 'https://103.82.195.87/webhook/ai-orchestrator',
   pushServerUrl: 'https://103.82.195.87/push',
   vapidPublicKey: 'BB7YphPy5ZbDpecs8B9lhOnLoAQ7aSTHEUKVhxV7PH8ZITMSf0pTwYvi9SBh794p-E3GNyyiP4DJPb4iQHYogmI',
   botName: 'Trợ lý AI',
@@ -229,10 +229,99 @@ function scrollToBottom() {
   chatArea.scrollTop = chatArea.scrollHeight;
 }
 
+// ===== GSC EMAIL SELECTOR =====
+const GSC_REGISTRY_URL = 'https://103.82.195.87/webhook/get-gsc-emails';
+
+function detectGscIntent(text) {
+  return /th[eê]m\s*(gsc|google search console|search console)/i.test(text) ||
+         /add\s*(gsc|google search console)/i.test(text) ||
+         /(gsc|search console).*(domain|web|site)/i.test(text);
+}
+
+function extractDomain(text) {
+  const m = text.match(/https?:\/\/[^\s,]+/i) || text.match(/([a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?)/i);
+  return m ? m[0] : null;
+}
+
+async function fetchAvailableEmails() {
+  try {
+    const res = await fetch(GSC_REGISTRY_URL, { signal: AbortSignal.timeout(5000) });
+    const data = await res.json();
+    return data.emails || [];
+  } catch(e) {
+    return [];
+  }
+}
+
+function showEmailSelector(domain, emails, originalText) {
+  // Xóa selector cũ nếu có
+  document.getElementById('gsc-email-selector')?.remove();
+
+  const group = document.createElement('div');
+  group.className = 'msg-group assistant';
+  group.id = 'gsc-email-selector';
+
+  let content = '';
+  if (emails.length === 0) {
+    content = `
+      <div class="bubble" style="max-width:340px">
+        <div style="font-weight:600;margin-bottom:8px">🔍 Thêm GSC cho <code style="background:#2a2a4a;padding:2px 6px;border-radius:4px;font-size:12px">${domain || 'domain'}</code></div>
+        <div style="color:#ff8080;margin-bottom:10px">⚠️ Hiện tại không có email Google nào khả dụng.</div>
+        <div style="color:#aaa;font-size:13px;line-height:1.6">→ Mở Chrome → vào <strong>search.google.com/search-console</strong><br>→ Extension sẽ tự động đồng bộ cookie.</div>
+      </div>`;
+  } else {
+    const chips = emails.map(e => {
+      const ago = e.minutesAgo < 60 ? `${e.minutesAgo}ph` : `${Math.round(e.minutesAgo/60)}h`;
+      return `<button onclick="selectGscEmail('${e.email}','${originalText.replace(/'/g,'\\\'')}')" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#1a1a3e,#2a2a5e);border:1px solid #4facfe55;border-radius:20px;color:#e0e0ff;padding:8px 14px;cursor:pointer;font-size:13px;margin:4px;transition:all 0.2s" onmouseover="this.style.borderColor='#4facfe';this.style.background='linear-gradient(135deg,#2a2a5e,#3a3aff44)'" onmouseout="this.style.borderColor='#4facfe55';this.style.background='linear-gradient(135deg,#1a1a3e,#2a2a5e)'">
+        <span>📧</span><span>${e.email}</span><span style="color:#4facfe;font-size:11px">${ago} trước</span>
+      </button>`;
+    }).join('');
+    content = `
+      <div class="bubble" style="max-width:400px">
+        <div style="font-weight:600;margin-bottom:8px">🔍 Thêm GSC cho <code style="background:#2a2a4a;padding:2px 6px;border-radius:4px;font-size:12px">${domain || 'domain'}</code></div>
+        <div style="color:#aaa;font-size:13px;margin-bottom:10px">Chọn email Google để đăng nhập GSC:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:2px">${chips}</div>
+      </div>`;
+  }
+
+  group.innerHTML = `<div class="msg-row"><div class="msg-avatar">🤖</div>${content}</div><div class="msg-time">${getTimeStr()}</div>`;
+  chatArea.insertBefore(group, typingIndicator);
+  scrollToBottom();
+}
+
+window.selectGscEmail = function(email, originalText) {
+  // Xóa selector
+  document.getElementById('gsc-email-selector')?.remove();
+  // Tạo message đầy đủ với email
+  const newText = originalText + `, email: ${email}`;
+  msgInput.value = newText;
+  autoResize();
+  sendMessage();
+};
+
 // ===== SEND MESSAGE =====
 async function sendMessage() {
   const text = msgInput.value.trim();
   if (!text || isProcessing || !currentUser) return;
+
+  // ===== GSC EMAIL INTERCEPT (không cần AI, xử lý ngay) =====
+  // Chỉ intercept khi có GSC intent nhưng KHÔNG có email trong message
+  if (detectGscIntent(text) && !text.includes('@') && !text.includes('email:')) {
+    const domain = extractDomain(text);
+    msgInput.value = '';
+    autoResize();
+    // Hiện tin nhắn user trước
+    await db.collection('users').doc(currentUser.uid).collection('messages').add({
+      role: 'user', content: text, time: getTimeStr(),
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // Lấy danh sách email khả dụng
+    showTyping();
+    const emails = await fetchAvailableEmails();
+    hideTyping();
+    showEmailSelector(domain, emails, text);
+    return;
+  }
 
   isProcessing = true;
   sendBtn.disabled = true;
