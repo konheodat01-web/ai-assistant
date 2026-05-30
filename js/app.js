@@ -768,7 +768,7 @@ document.getElementById('btn-add-skill').addEventListener('click', async () => {
 document.getElementById('clear-chat-btn').addEventListener('click', async () => {
   if (!currentUser) return;
   
-  if (confirm('⚠️ Bạn muốn xóa toàn bộ lịch sử hội thoại trên TẤT CẢ thiết bị?\\n\\nHành động này không thể hoàn tác!')) {
+  if (confirm('⚠️ Bạn muốn xóa toàn bộ lịch sử hội thoại trên TẤT CẢ thiết bị?\n\nHành động này không thể hoàn tác!')) {
     if (confirm('Xác nhận lần 2: Thực sự muốn xóa hết?')) {
       // Xóa hàng loạt trên Firestore
       const msgsRef = db.collection('users').doc(currentUser.uid).collection('messages');
