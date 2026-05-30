@@ -238,6 +238,14 @@ function detectGscIntent(text) {
          /(gsc|search console).*(domain|web|site)/i.test(text);
 }
 
+function detectEmailListIntent(text) {
+  return /(email|gmail|tài khoản).*(sẵn sàng|khả dụng|có thể|dùng|thêm gsc)/i.test(text) ||
+         /(sẵn sàng|khả dụng).*(email|gmail)/i.test(text) ||
+         /email nào.*(thêm|add|gsc)/i.test(text) ||
+         /các email/i.test(text) ||
+         /list.*email/i.test(text);
+}
+
 function extractDomain(text) {
   const m = text.match(/https?:\/\/[^\s,]+/i) || text.match(/([a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?)/i);
   return m ? m[0] : null;
@@ -292,9 +300,8 @@ function showEmailSelector(domain, emails, originalText) {
 window.selectGscEmail = function(email, originalText) {
   // Xóa selector
   document.getElementById('gsc-email-selector')?.remove();
-  // Tạo message đầy đủ với email
-  const newText = originalText + `, email: ${email}`;
-  msgInput.value = newText;
+  // Chỉ gửi email — không ghép câu hỏi gốc vào
+  msgInput.value = email;
   autoResize();
   sendMessage();
 };
@@ -305,9 +312,11 @@ async function sendMessage() {
   if (!text || isProcessing || !currentUser) return;
 
   // ===== GSC EMAIL INTERCEPT (không cần AI, xử lý ngay) =====
-  // Chỉ intercept khi có GSC intent nhưng KHÔNG có email trong message
-  if (detectGscIntent(text) && !text.includes('@') && !text.includes('email:')) {
-    const domain = extractDomain(text);
+  const isGscAdd = detectGscIntent(text) && !text.includes('@');
+  const isEmailListQuery = detectEmailListIntent(text) && !text.includes('@');
+
+  if (isGscAdd || isEmailListQuery) {
+    const domain = isGscAdd ? extractDomain(text) : null;
     msgInput.value = '';
     autoResize();
     // Hiện tin nhắn user trước
