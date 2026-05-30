@@ -307,7 +307,7 @@ function showEmailSelector(domain, emails, originalText) {
   } else {
     const chips = emails.map(e => {
       const ago = e.minutesAgo < 60 ? `${e.minutesAgo}ph` : `${Math.round(e.minutesAgo/60)}h`;
-      return `<button onclick="selectGscEmail('${e.email}','${originalText.replace(/'/g,'\\\'')}')" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#1a1a3e,#2a2a5e);border:1px solid #4facfe55;border-radius:20px;color:#e0e0ff;padding:8px 14px;cursor:pointer;font-size:13px;margin:4px;transition:all 0.2s" onmouseover="this.style.borderColor='#4facfe';this.style.background='linear-gradient(135deg,#2a2a5e,#3a3aff44)'" onmouseout="this.style.borderColor='#4facfe55';this.style.background='linear-gradient(135deg,#1a1a3e,#2a2a5e)'">
+      return `<button onclick="selectGscEmail('${e.email.replace(/'/g, "\\'")}')" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#1a1a3e,#2a2a5e);border:1px solid #4facfe55;border-radius:20px;color:#e0e0ff;padding:8px 14px;cursor:pointer;font-size:13px;margin:4px;transition:all 0.2s" onmouseover="this.style.borderColor='#4facfe';this.style.background='linear-gradient(135deg,#2a2a5e,#3a3aff44)'" onmouseout="this.style.borderColor='#4facfe55';this.style.background='linear-gradient(135deg,#1a1a3e,#2a2a5e)'">
         <span>📧</span><span>${e.email}</span><span style="color:#4facfe;font-size:11px">${ago} trước</span>
       </button>`;
     }).join('');
